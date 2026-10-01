@@ -20,10 +20,10 @@ Who are the primary target users of this application?
 - Small-business owners do not have the technical skills to analyse data, Agentic AI can help generate dashboards and reports by the use of natural language such as English. This helps reduce costs and enable the owner to focus on higher-level strategy.
 
 ### Why AI is appropriate
-- Traditional software limits users to rigid, pre-built queries and standard dashboards. An agentic AI understands natural language, dynamically inspects unknown dataset schemas, generates and safely executes custom SQL/Python code
+- Traditional software limits users to rigid, pre-built queries and standard dashboards. An agentic AI understands natural language, dynamically inspects unknown dataset schemas, generates and safely executes custom SQL/Python code.
 
 ## Solution
-- The Data Analysis Assistant is a specialized, privacy-focused browser AI tool that acts as an automated data co-pilot. Users upload files such as xlsx or csv filetypes, and ask questions in plain English.
+- The Data Analysis AI Assistant is a specialized, privacy-focused browser AI tool that acts as an automated data co-pilot. Users upload files such as xlsx or csv filetypes, and ask questions in plain English.
 - The application inspects the file schema, constructs and safely executes Excel/Pandas/SQL logic, handles syntax errors, and presents key findings along with interactive charts.
 
 ## Main user workflow
@@ -63,7 +63,8 @@ Gradio UI (app/ui.py) [Displays Answer + Rendered Charts]
 
 - **Model used:** `llama3.8` (subject to change depending on hardware performance)
 
-- **Selection rationale:** Why was this specific model chosen for your project (e.g., lightweight, performance, context size)?*
+### **Selection rationale:**
+
 * **Data Privacy:** Runs 100% locally via Ollama, preventing confidential client data leaks to third-party APIs.
 * **Code Precision:** Outperforms general-purpose models at writing complex, error-free SQL queries and Python/Pandas logic.
 
@@ -80,7 +81,6 @@ Select at least one additional capability to implement for your final project:
 - [ ] Other: ______________________
 
 ### Capability justification
-Explain why the selected capability is useful and necessary for your application's user problem.
 
 LLMs hallucinate when calculating raw data in text. **Tools / External API integration** allow the model to run real Python/SQL code on datasets, guaranteeing 100% accurate calculations, instant data processing, and reliable chart generation.
 
@@ -154,13 +154,11 @@ Refer to [`evaluation/README.md`](evaluation/README.md) for guidelines on defini
 
 ## Known limitations
 
-- Highlight known system limitations, unhandled edge cases, or boundaries of current capabilities.
 * **Large File Memory Limits:** Processing datasets over 1000 MB directly in local RAM can cause high latency or out-of-memory crashes depending on system hardware.
 * **Messy Excel Formatting:** Files with merged cells, multi-line headers, or missing column names can break automatic schema extraction and cause code execution errors.
 
 
 ## Future improvements
 
-- List planned feature enhancements, architectural refactorings, or future capabilities.
 * Interactive Charting: Upgrade static plot images to interactive Plotly charts so users can hover, zoom, and filter data directly inside the UI.
 * Auto-Recovery Loop: Add automatic error feedback so the model reads execution stack traces and self-corrects bad code syntax without user intervention.
