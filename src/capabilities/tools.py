@@ -23,4 +23,25 @@ Note:
 Tools should be deterministic, safe, and scoped to the user problem.
 """
 
+from src.schemas.responses import CourseObservation, LookupArgs
+
 # Implement custom tool functions and schema definitions below if selected.
+
+COURSE_RECORDS = {
+    "SAMPLE-AI": {
+        "workshop": "2026-10-15T10:00:00+03:00",
+        "project": "2026-10-30T16:00:00+02:00",
+    }
+}
+
+
+def lookup_course(course_id: str, activity: str) -> CourseObservation:
+    """Read the workshop or project deadline for a fictional course record."""
+    args = LookupArgs(course_id=course_id, activity=activity)
+    deadline = COURSE_RECORDS.get(args.course_id, {}).get(args.activity)
+    return CourseObservation(
+        found=deadline is not None,
+        course_id=args.course_id,
+        activity=args.activity,
+        deadline=deadline,
+    )

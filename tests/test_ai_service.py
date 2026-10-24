@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 import pytest
 
+from src.capabilities.tools import lookup_course
 from src.config import config
 from src.models.model_client import (
     ModelClientError,
@@ -71,3 +72,30 @@ def test_model_not_found_error_handling():
     assert response.success is False
     assert "configured AI model is unavailable" in response.content
     assert "llama3.2 not found" in response.error_message
+
+
+# ---------------------------------------------------------------------------
+# Course lookup tool tests (no Ollama needed)
+# ---------------------------------------------------------------------------
+
+
+def test_lookup_course_found():
+    """Verify that a known course and activity returns the stored deadline."""
+    result = lookup_course("SAMPLE-AI", "project")
+
+    assert result.found is True
+    assert result.deadline == "2026-10-30T16:00:00+02:00"
+
+
+def test_lookup_course_not_found():
+    """Verify that an unknown course returns found=False and no invented deadline."""
+    result = lookup_course("UNKNOWN-1", "project")
+
+    assert result.found is False
+    assert result.deadline is None
+
+
+def test_lookup_course_rejects_invalid_activity():
+    """Verify that strict validation rejects activities other than workshop/project."""
+    with pytest.raises(Exception):
+        lookup_course("SAMPLE-AI", "exam")

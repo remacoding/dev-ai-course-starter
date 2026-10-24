@@ -7,8 +7,9 @@ dependencies:
   - python=3.12
   - pip
   - pip:
-      - ollama
-      - gradio
-      - pydantic
+      - ollama>=0.6
+      - mcp==2.1.1
+      - pydantic>=2.13
+      - streamlit
       - python-dotenv
       - pytest

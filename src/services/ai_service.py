@@ -1,11 +1,24 @@
 from typing import Optional
+
+from mcp import Client as MCPClient
+from ollama import AsyncClient
+from pydantic import ValidationError
+
+from src.capabilities.mcp import course_server
+from src.config import SYSTEM_MESSAGE, config
 from src.models.model_client import (
     OllamaModelClient,
     ModelClientError,
     OllamaConnectionError,
     ModelNotFoundError,
 )
-from src.schemas.responses import UserRequest, AIResponse
+from src.schemas.responses import (
+    AIResponse,
+    CourseObservation,
+    LookupArgs,
+    SupportReply,
+    UserRequest,
+)
 
 
 class AIService:
@@ -88,10 +101,102 @@ class AIService:
 def generate_response(user_message: str, service: Optional[AIService] = None) -> str:
     """
     Main reusable service entry point used by the UI layer.
-    
+
     Accepts user input message, passes it to the AI service, and returns
     the generated text response (or a friendly error message).
     """
     active_service = service or AIService()
     response = active_service.process_message(user_message)
     return response.content
+
+
+# ---------------------------------------------------------------------------
+# MCP tool-calling flow (async, used by the Streamlit UI)
+# ---------------------------------------------------------------------------
+
+
+def make_client() -> AsyncClient:
+    # Streamlit runs each request in a new event loop, so create the client per call
+    return AsyncClient(host=config.ollama_base_url, timeout=config.ollama_timeout)
+
+
+def error(message: str) -> dict:
+    return {"status": "error", "message": message}
+
+
+async def installed_models() -> list[str]:
+    return [m.model for m in (await make_client().list()).models]
+
+
+async def ask_with_mcp_tool(question: str, model_id: str) -> dict:
+    ollama = make_client()
+    messages = [
+        {"role": "system", "content": SYSTEM_MESSAGE},
+        {"role": "user", "content": question},
+    ]
+
+    async with MCPClient(course_server) as client:
+        mcp_tool = next(
+            t for t in (await client.list_tools()).tools if t.name == "lookup_course"
+        )
+        tool_spec = {
+            "type": "function",
+            "function": {
+                "name": mcp_tool.name,
+                "description": mcp_tool.description,
+                "parameters": mcp_tool.input_schema,
+            },
+        }
+
+        first = await ollama.chat(
+            model=model_id,
+            messages=messages,
+            tools=[tool_spec],
+            options={"temperature": 0},
+            stream=False,
+        )
+
+        tool_calls = first.message.tool_calls or []
+        if not tool_calls:
+            return error("The model did not request the course lookup.")
+
+        call = tool_calls[0]
+        if call.function.name != "lookup_course":
+            return error("The model requested an unsupported tool.")
+
+        try:
+            args = LookupArgs.model_validate(dict(call.function.arguments))
+        except ValidationError:
+            return error("The model supplied invalid tool arguments.")
+
+        tool_result = await client.call_tool("lookup_course", args.model_dump())
+        if tool_result.is_error:
+            return error("The MCP tool could not complete the lookup.")
+
+        observation = CourseObservation.model_validate(tool_result.structured_content)
+
+        messages += [
+            first.message.model_dump(exclude_none=True),
+            {
+                "role": "tool",
+                "tool_name": "lookup_course",
+                "content": observation.model_dump_json(),
+            },
+        ]
+
+        final = await ollama.chat(
+            model=model_id,
+            messages=messages,
+            format=SupportReply.model_json_schema(),
+            options={"temperature": 0},
+            stream=False,
+        )
+
+        return {
+            "status": "ok",
+            "reply": SupportReply.model_validate_json(final.message.content or ""),
+            "tool": "lookup_course",
+            "arguments": args.model_dump(),
+            "observation": observation.model_dump(),
+            "route": "MCP",
+        }

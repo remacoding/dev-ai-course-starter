@@ -23,3 +23,20 @@ or building a custom MCP tool server.
 """
 
 # Implement custom MCP client/server integration below if selected.
+
+from typing import Literal
+
+from mcp.server import MCPServer
+
+from src.capabilities.tools import lookup_course
+from src.schemas.responses import CourseObservation
+
+course_server = MCPServer("Fictional Course Information")
+
+
+@course_server.tool(name="lookup_course")
+def mcp_lookup_course(
+    course_id: str, activity: Literal["workshop", "project"]
+) -> CourseObservation:
+    """Read a fictional workshop or project deadline."""
+    return lookup_course(course_id, activity)

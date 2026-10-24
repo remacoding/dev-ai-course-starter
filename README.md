@@ -1,8 +1,4 @@
-# Project name
-
-Starter template for the **Development of AI Applications** course final group project.
-
-### Project Idea: AI Data Analysis Assistant
+### Project Idea: Data Analysis Assistant
 
 ## Team members
 
