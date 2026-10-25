@@ -28,15 +28,15 @@ from typing import Literal
 
 from mcp.server import MCPServer
 
-from src.capabilities.tools import lookup_course
-from src.schemas.responses import CourseObservation
+from src.capabilities.tools import lookup_product_deadline
+from src.schemas.responses import ProductObservation
 
-course_server = MCPServer("Fictional Course Information")
+product_server = MCPServer("Fictional Product Information")
 
 
-@course_server.tool(name="lookup_course")
-def mcp_lookup_course(
-    course_id: str, activity: Literal["workshop", "project"]
-) -> CourseObservation:
-    """Read a fictional workshop or project deadline."""
-    return lookup_course(course_id, activity)
+@product_server.tool(name="lookup_product_deadline")
+def mcp_lookup_product_deadline(
+    product_id: str, stage: Literal["manufacturing", "testing", "shipping"]
+) -> ProductObservation:
+    """Read the deadline for the manufacturing, testing or shipping stage of a product."""
+    return lookup_product_deadline(product_id, stage)

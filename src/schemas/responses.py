@@ -17,21 +17,21 @@ class AIResponse(BaseModel):
     error_message: str | None = Field(None, description="Detailed error description if success is False.")
 
 
-class LookupArgs(BaseModel):
-    """Validated arguments for the lookup_course tool."""
+class ProductArgs(BaseModel):
+    """Validated arguments for the lookup_product_deadline tool."""
 
     model_config = ConfigDict(strict=True, extra="forbid")
-    course_id: str = Field(min_length=2, max_length=20)
-    activity: Literal["workshop", "project"]
+    product_id: str = Field(min_length=2, max_length=30)
+    stage: Literal["manufacturing", "testing", "shipping"]
 
 
-class CourseObservation(BaseModel):
-    """Result returned by the lookup_course tool."""
+class ProductObservation(BaseModel):
+    """Result returned by the lookup_product_deadline tool."""
 
     model_config = ConfigDict(strict=True, extra="forbid")
     found: bool
-    course_id: str
-    activity: Literal["workshop", "project"]
+    product_id: str
+    stage: Literal["manufacturing", "testing", "shipping"]
     deadline: str | None = None
 
 
@@ -40,5 +40,5 @@ class SupportReply(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", str_strip_whitespace=True)
     answer: str = Field(min_length=1, max_length=600)
-    category: Literal["course", "account", "other"]
+    category: Literal["product", "account", "other"]
     needs_human: bool

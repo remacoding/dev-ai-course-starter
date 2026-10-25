@@ -58,7 +58,7 @@ def render() -> None:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    if message := st.chat_input("Ask your university support question..."):
+    if message := st.chat_input("Ask about a product..."):
         st.session_state.messages.append({"role": "user", "content": message})
         with st.chat_message("user"):
             st.markdown(message)

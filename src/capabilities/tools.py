@@ -23,25 +23,32 @@ Note:
 Tools should be deterministic, safe, and scoped to the user problem.
 """
 
-from src.schemas.responses import CourseObservation, LookupArgs
+from src.schemas.responses import ProductArgs, ProductObservation
 
-# Implement custom tool functions and schema definitions below if selected.
-
-COURSE_RECORDS = {
-    "SAMPLE-AI": {
-        "workshop": "2026-10-15T10:00:00+03:00",
-        "project": "2026-10-30T16:00:00+02:00",
+PRODUCT_RECORDS = {
+    "LAPTOP-1000": {
+        "manufacturing": "2026-12-15T17:00:00+02:00",
+        "testing": "2027-01-10T17:00:00+02:00",
+        "shipping": "2027-01-31T12:00:00+02:00",
     }
 }
 
 
-def lookup_course(course_id: str, activity: str) -> CourseObservation:
-    """Read the workshop or project deadline for a fictional course record."""
-    args = LookupArgs(course_id=course_id, activity=activity)
-    deadline = COURSE_RECORDS.get(args.course_id, {}).get(args.activity)
-    return CourseObservation(
+def _normalize(product_id: str) -> str:
+    """Make 'laptop model 1000', 'laptop 1000' and 'LAPTOP_1000' all become LAPTOP-1000."""
+    key = product_id.strip().upper().replace("_", " ")
+    key = key.replace("MODEL", "").replace("-", " ")
+    return "-".join(key.split())
+
+
+def lookup_product_deadline(product_id: str, stage: str) -> ProductObservation:
+    """Read the deadline for a production stage of a fictional product."""
+    args = ProductArgs(product_id=product_id, stage=stage)
+    key = _normalize(args.product_id)
+    deadline = PRODUCT_RECORDS.get(key, {}).get(args.stage)
+    return ProductObservation(
         found=deadline is not None,
-        course_id=args.course_id,
-        activity=args.activity,
+        product_id=key,
+        stage=args.stage,
         deadline=deadline,
     )

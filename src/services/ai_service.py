@@ -4,7 +4,7 @@ from mcp import Client as MCPClient
 from ollama import AsyncClient
 from pydantic import ValidationError
 
-from src.capabilities.mcp import course_server
+from src.capabilities.mcp import product_server
 from src.config import SYSTEM_MESSAGE, config
 from src.models.model_client import (
     OllamaModelClient,
@@ -14,8 +14,8 @@ from src.models.model_client import (
 )
 from src.schemas.responses import (
     AIResponse,
-    CourseObservation,
-    LookupArgs,
+    ProductArgs,
+    ProductObservation,
     SupportReply,
     UserRequest,
 )
@@ -114,6 +114,8 @@ def generate_response(user_message: str, service: Optional[AIService] = None) ->
 # MCP tool-calling flow (async, used by the Streamlit UI)
 # ---------------------------------------------------------------------------
 
+TOOL_NAME = "lookup_product_deadline"
+
 
 def make_client() -> AsyncClient:
     # Streamlit runs each request in a new event loop, so create the client per call
@@ -135,9 +137,9 @@ async def ask_with_mcp_tool(question: str, model_id: str) -> dict:
         {"role": "user", "content": question},
     ]
 
-    async with MCPClient(course_server) as client:
+    async with MCPClient(product_server) as client:
         mcp_tool = next(
-            t for t in (await client.list_tools()).tools if t.name == "lookup_course"
+            t for t in (await client.list_tools()).tools if t.name == TOOL_NAME
         )
         tool_spec = {
             "type": "function",
@@ -158,28 +160,28 @@ async def ask_with_mcp_tool(question: str, model_id: str) -> dict:
 
         tool_calls = first.message.tool_calls or []
         if not tool_calls:
-            return error("The model did not request the course lookup.")
+            return error("The model did not request the product lookup.")
 
         call = tool_calls[0]
-        if call.function.name != "lookup_course":
+        if call.function.name != TOOL_NAME:
             return error("The model requested an unsupported tool.")
 
         try:
-            args = LookupArgs.model_validate(dict(call.function.arguments))
+            args = ProductArgs.model_validate(dict(call.function.arguments))
         except ValidationError:
             return error("The model supplied invalid tool arguments.")
 
-        tool_result = await client.call_tool("lookup_course", args.model_dump())
+        tool_result = await client.call_tool(TOOL_NAME, args.model_dump())
         if tool_result.is_error:
             return error("The MCP tool could not complete the lookup.")
 
-        observation = CourseObservation.model_validate(tool_result.structured_content)
+        observation = ProductObservation.model_validate(tool_result.structured_content)
 
         messages += [
             first.message.model_dump(exclude_none=True),
             {
                 "role": "tool",
-                "tool_name": "lookup_course",
+                "tool_name": TOOL_NAME,
                 "content": observation.model_dump_json(),
             },
         ]
@@ -195,7 +197,7 @@ async def ask_with_mcp_tool(question: str, model_id: str) -> dict:
         return {
             "status": "ok",
             "reply": SupportReply.model_validate_json(final.message.content or ""),
-            "tool": "lookup_course",
+            "tool": TOOL_NAME,
             "arguments": args.model_dump(),
             "observation": observation.model_dump(),
             "route": "MCP",
