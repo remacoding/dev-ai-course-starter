@@ -4,6 +4,10 @@
 
 - Reng Majer (reng.majer@student.hamk.fi)
 
+## Demo Video
+
+* [Link to HAMK Kaltura](https://kaltura.hamk.fi/media/Dev_Ai_Project/0_rcpkat78)
+
 ## Problem
 
 ### Intended users
