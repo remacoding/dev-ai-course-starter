@@ -9,7 +9,7 @@ The starter application follows a clean layered separation of concerns:
 ```text
 User
   ↓
-Gradio UI (app/ui.py)
+Streamlit (app/ui.py)
   ↓
 Application / AI Service (src/services/ai_service.py)
   ↓
@@ -22,7 +22,7 @@ Local Model (e.g., llama3.2)
 
 ### Core Design Rules
 
-1. **Strict UI Isolation:** The Gradio user interface (`app/ui.py`) MUST NOT directly instantiate `OllamaModelClient` or make direct API calls to Ollama. It delegates all operations to `generate_response()` in `src/services/ai_service.py`.
+1. **Strict UI Isolation:** The Streamlit user interface (`app/ui.py`) MUST NOT directly instantiate `OllamaModelClient` or make direct API calls to Ollama. It delegates all operations to `generate_response()` in `src/services/ai_service.py`.
 2. **Controlled Failure Handling:** The model client handles low-level runtime exceptions (e.g., connection errors or missing models). The service layer converts technical exceptions into structured, user-understandable responses.
 3. **Data Schemas:** Request inputs and response structures are validated using Pydantic models in `src/schemas/responses.py`.
 

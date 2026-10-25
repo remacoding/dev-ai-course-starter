@@ -24,11 +24,11 @@ Who are the primary target users of this application?
 
 ## Main user workflow
 
-1. **User Input:** The user uploads a dataset (`.xlsx`, `.csv`, or `.db`) and submits a natural language data question via the Gradio user interface.
+1. **User Input:** The user uploads a dataset (`.xlsx`, `.csv`, or `.db`) and submits a natural language data question via the Streamlit user interface.
 2. **Schema Extraction & Guardrails:** The service layer parses file headers and metadata, validates input parameters, and passes schema context to the AI model client.
 3. **Model Code Generation:** The ollama model (`qwen3:8b`) generates executable Python/Pandas or SQL code targeted to answer the prompt.
 4. **Tool Execution Loop:** The execution engine safely runs the code against the uploaded file, retrieves dataframes or chart objects, and passes execution status back to `ai_service.py`. If an execution error occurs, an error recovery loop feeds the stack trace back to the model for self-correction.
-5. **Output Display:** The service layer returns structured text summaries and interactive chart outputs to the Gradio interface.
+5. **Output Display:** The service layer returns structured text summaries and interactive chart outputs to the Streamlit interface.
 
 ## Architecture
 
@@ -37,7 +37,7 @@ Below is the initial starter architecture. As your project evolves with addition
 ```text
 User
   ↓
-Gradio UI (app/ui.py)
+Streamlit UI (app/ui.py)
   ↓
 Application / AI Service (src/services/ai_service.py)
 1. Extract File Schema (Pandas / SQL)
@@ -50,7 +50,7 @@ Ollama (Local LLM Server)
 1. Generate executable code
 2. Generates Output Dataframe & Matplotlib/Plotly Charts
   ↓
-Gradio UI (app/ui.py) [Displays Answer + Rendered Charts]
+Streamlit UI (app/ui.py) [Displays Answer + Rendered Charts]
 ```
 
 > **Core Architectural Rule:** The user interface must NEVER communicate directly with the model client or Ollama. All interactions must pass through the service layer (`ai_service.py`).
@@ -70,7 +70,7 @@ Select at least one additional capability to implement for your final project:
 
 - [ ] RAG (Retrieval-Augmented Generation)
 - [x] Tools / External API integration
-- [ ] Model Context Protocol (MCP)
+- [x] Model Context Protocol (MCP)
 - [ ] Agentic workflow (Model-selected actions based on observations)
 - [ ] Memory / Persistent state
 - [ ] Multimodal interaction (Text + Images)
