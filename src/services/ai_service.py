@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 
 from mcp import Client as MCPClient
@@ -116,9 +117,8 @@ def generate_response(user_message: str, service: Optional[AIService] = None) ->
 
 TOOL_NAME = "lookup_product_deadline"
 
-
 def make_client() -> AsyncClient:
-    # Streamlit runs each request in a new event loop, so create the client per call
+    # New client per call: Streamlit runs each request in a new event loop
     return AsyncClient(host=config.ollama_base_url, timeout=config.ollama_timeout)
 
 
@@ -138,67 +138,49 @@ async def ask_with_mcp_tool(question: str, model_id: str) -> dict:
     ]
 
     async with MCPClient(product_server) as client:
-        mcp_tool = next(
-            t for t in (await client.list_tools()).tools if t.name == TOOL_NAME
-        )
-        tool_spec = {
-            "type": "function",
-            "function": {
-                "name": mcp_tool.name,
-                "description": mcp_tool.description,
-                "parameters": mcp_tool.input_schema,
-            },
-        }
+        # 1. Describe the MCP tool(s) to the model
+        tools = [
+            {"type": "function", "function": {
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.input_schema,
+            }}
+            for t in (await client.list_tools()).tools
+        ]
 
-        first = await ollama.chat(
-            model=model_id,
-            messages=messages,
-            tools=[tool_spec],
-            options={"temperature": 0},
-            stream=False,
-        )
-
-        tool_calls = first.message.tool_calls or []
-        if not tool_calls:
+        # 2. Ask the model whether it wants to use the tool
+        first = await ollama.chat(model=model_id, messages=messages, tools=tools,
+                                  options={"temperature": 0})
+        calls = first.message.tool_calls
+        if not calls or calls[0].function.name != TOOL_NAME:
             return error("The model did not request the product lookup.")
 
-        call = tool_calls[0]
-        if call.function.name != TOOL_NAME:
-            return error("The model requested an unsupported tool.")
-
+        # 3. Validate the arguments the model chose
         try:
-            args = ProductArgs.model_validate(dict(call.function.arguments))
+            args = ProductArgs.model_validate(dict(calls[0].function.arguments))
         except ValidationError:
             return error("The model supplied invalid tool arguments.")
 
-        tool_result = await client.call_tool(TOOL_NAME, args.model_dump())
-        if tool_result.is_error:
+        # 4. Run the tool through MCP
+        result = await client.call_tool(TOOL_NAME, args.model_dump())
+        if result.is_error:
             return error("The MCP tool could not complete the lookup.")
+        observation = result.structured_content
 
-        observation = ProductObservation.model_validate(tool_result.structured_content)
-
+        # 5. Give the result back and get the final structured answer
         messages += [
-            first.message.model_dump(exclude_none=True),
-            {
-                "role": "tool",
-                "tool_name": TOOL_NAME,
-                "content": observation.model_dump_json(),
-            },
+            first.message,
+            {"role": "tool", "tool_name": TOOL_NAME, "content": json.dumps(observation)},
         ]
-
-        final = await ollama.chat(
-            model=model_id,
-            messages=messages,
-            format=SupportReply.model_json_schema(),
-            options={"temperature": 0},
-            stream=False,
-        )
+        final = await ollama.chat(model=model_id, messages=messages,
+                                  format=SupportReply.model_json_schema(),
+                                  options={"temperature": 0})
 
         return {
             "status": "ok",
             "reply": SupportReply.model_validate_json(final.message.content or ""),
             "tool": TOOL_NAME,
             "arguments": args.model_dump(),
-            "observation": observation.model_dump(),
+            "observation": observation,
             "route": "MCP",
         }
